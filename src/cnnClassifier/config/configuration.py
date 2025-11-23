@@ -1,7 +1,7 @@
 import os
 from cnnClassifier.constants import *
 from cnnClassifier.utils.common import read_yaml, create_directories
-from cnnClassifier.entity.config_entity import (DataIngestionConfig)
+from cnnClassifier.entity.config_entity import (DataIngestionConfig, PrepareBaseModelConfig)
 
 # -----------------------------------------------------------------------------
 # WHY THIS FILE EXISTS:
@@ -66,3 +66,29 @@ class ConfigurationManager:
         )
 
         return data_ingestion_config
+
+    def get_prepare_base_model_config(self) -> PrepareBaseModelConfig:
+        """
+        WHAT: Returns the PrepareBaseModelConfig from our config.yaml file.
+        
+        WHY: 
+        - The PrepareBaseModelConfig is a special class that holds all the settings
+          needed to train a base model (like VGG16/ResNet).
+        - It's used by the PrepareBaseModel class to know what to do.
+        
+        HOW:
+        - Reads the 'prepare_base_model' section from config.yaml.
+        - Converts it into a PrepareBaseModelConfig object.
+        """
+        prepare_base_model_config = self.config.prepare_base_model
+        prepare_base_model_config = PrepareBaseModelConfig(
+            root_dir=Path(prepare_base_model_config.root_dir),
+            base_model_path=Path(prepare_base_model_config.base_model_path),
+            updated_base_model_path=Path(prepare_base_model_config.updated_base_model_path),
+            params_image_size=self.params.IMAGE_SIZE,
+            params_learning_rate=self.params.LEARNING_RATE,
+            params_include_top=self.params.INCLUDE_TOP,
+            params_weights=self.params.WEIGHTS,
+            params_classes=self.params.CLASSES,
+        )
+        return prepare_base_model_config

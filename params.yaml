@@ -1,1 +1,42 @@
-'key': 'value'
+# -----------------------------------------------------------------------------
+# WHY THIS FILE EXISTS:
+# This file stores "Hyperparameters" - the knobs and dials we turn to tune our model.
+# 
+# Instead of hardcoding "learning_rate = 0.01" deep inside the training code,
+# we put it here. This allows us to experiment easily:
+# "What if I change EPOCHS to 50?" -> Just change it here, no code changes needed!
+# -----------------------------------------------------------------------------
+
+# IMAGE_SIZE: The dimensions of the input image [Height, Width, Channels].
+# - 224, 224: Standard size for VGG16/ResNet models.
+# - 3: RGB Color channels (Red, Green, Blue).
+IMAGE_SIZE: [224, 224, 3]
+
+# LEARNING_RATE: How fast the model learns.
+# - Too high: It might miss the optimal solution.
+# - Too low: It will take forever to train.
+LEARNING_RATE: 0.01
+
+# INCLUDE_TOP: Whether to include the fully connected layers at the top of the network.
+# - False: We want to use our own custom classifier for Cancer detection, not the default one.
+INCLUDE_TOP: False
+
+# WEIGHTS: Pre-trained weights to start with.
+# - 'imagenet': Starts with knowledge from millions of everyday images (cats, dogs, cars).
+# - This is called "Transfer Learning" - it's much faster than training from scratch.
+WEIGHTS: imagenet
+
+# CLASSES: Number of categories to predict.
+# - 2: e.g., "Normal" vs "Cancer" (Binary Classification).
+CLASSES: 2
+
+# EPOCHS: How many times the model sees the entire dataset during training.
+EPOCHS: 1
+
+# BATCH_SIZE: How many images to process at once before updating the model.
+# - 16: Good balance for average GPUs.
+BATCH_SIZE: 16 
+
+# AUGMENTATION: Whether to artificially create more training data.
+# - True: Rotates, flips, and zooms images to make the model more robust.
+AUGMENTATION: True
