@@ -1,7 +1,7 @@
 import os
 from cnnClassifier.constants import *
 from cnnClassifier.utils.common import read_yaml, create_directories
-from cnnClassifier.entity.config_entity import (DataIngestionConfig, PrepareBaseModelConfig)
+from cnnClassifier.entity.config_entity import (DataIngestionConfig, PrepareBaseModelConfig, TrainingConfig)
 
 # -----------------------------------------------------------------------------
 # WHY THIS FILE EXISTS:
@@ -92,3 +92,34 @@ class ConfigurationManager:
             params_classes=self.params.CLASSES,
         )
         return prepare_base_model_config
+
+    def get_training_config(self) -> TrainingConfig:
+        """
+        WHAT: Returns the TrainingConfig from our config.yaml file.
+        
+        WHY: 
+        - The TrainingConfig is a special class that holds all the settings
+          needed to train a model (like epochs, batch size).
+        - It's used by the Training class to know what to do.
+        
+        HOW:
+        - Reads the 'training' section from config.yaml.
+        - Converts it into a TrainingConfig object.
+        """
+        training_config = self.config.training
+        directory = self.config.artifacts_root
+        prepare_base_model_config = self.config.prepare_base_model
+        params = self.params
+        training_data = os.path.join(directory, "data_ingestion")  
+        training_config = TrainingConfig(
+            root_dir=Path(training_config.root_dir),
+            trained_model_path=Path(training_config.trained_model_path),
+            updated_base_model_path=Path(prepare_base_model_config.updated_base_model_path),
+            training_data=Path(training_data),
+            params_epochs=self.params.EPOCHS,
+            params_batch_size=self.params.BATCH_SIZE,
+            params_is_augmentation=self.params.AUGMENTATION,
+            params_image_size=self.params.IMAGE_SIZE,
+        )
+        return training_config  
+
