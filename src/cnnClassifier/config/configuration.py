@@ -1,7 +1,7 @@
 import os
 from cnnClassifier.constants import *
 from cnnClassifier.utils.common import read_yaml, create_directories
-from cnnClassifier.entity.config_entity import (DataIngestionConfig, PrepareBaseModelConfig, TrainingConfig)
+from cnnClassifier.entity.config_entity import (DataIngestionConfig, PrepareBaseModelConfig, TrainingConfig, EvaluationConfig)
 
 # -----------------------------------------------------------------------------
 # WHY THIS FILE EXISTS:
@@ -123,3 +123,33 @@ class ConfigurationManager:
         )
         return training_config  
 
+    def get_evaluation_config(self) -> EvaluationConfig:
+        """
+        WHAT: Returns the EvaluationConfig from our config.yaml file.
+        
+        WHY: 
+        - The EvaluationConfig is a special class that holds all the settings
+          needed to evaluate a model (like epochs, batch size).
+        - It's used by the Evaluation class to know what to do.
+        
+        HOW:
+        - Reads the 'evaluation' section from config.yaml.
+        - Converts it into an EvaluationConfig object.
+        """
+        evaluation_config = self.config.evaluation
+        directory = self.config.artifacts_root
+        prepare_base_model_config = self.config.prepare_base_model
+        params = self.params
+        evaluation_data = os.path.join(directory, "data_ingestion")  
+        evaluation_config = EvaluationConfig(
+            path_of_model=Path(evaluation_config.path_of_model),
+            training_data=Path(evaluation_data),
+            all_params=self.params,
+            #mlflow_uri=self.config.mlflow_uri,
+            params_image_size=self.params.IMAGE_SIZE,
+            params_batch_size=self.params.BATCH_SIZE,
+        )
+        return evaluation_config    
+
+    
+        
