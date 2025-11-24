@@ -15,7 +15,7 @@ IMAGE_SIZE: [224, 224, 3]
 # LEARNING_RATE: How fast the model learns.
 # - Too high: It might miss the optimal solution.
 # - Too low: It will take forever to train.
-LEARNING_RATE: 0.01
+LEARNING_RATE: 0.0003
 
 # INCLUDE_TOP: Whether to include the fully connected layers at the top of the network.
 # - False: We want to use our own custom classifier for Cancer detection, not the default one.
@@ -31,11 +31,11 @@ WEIGHTS: imagenet
 CLASSES: 2
 
 # EPOCHS: How many times the model sees the entire dataset during training.
-EPOCHS: 2
+EPOCHS: 5
 
 # BATCH_SIZE: How many images to process at once before updating the model.
 # - 16: Good balance for average GPUs.
-BATCH_SIZE: 32 
+BATCH_SIZE: 16 
 
 # AUGMENTATION: Whether to artificially create more training data.
 # - True: Rotates, flips, and zooms images to make the model more robust.
