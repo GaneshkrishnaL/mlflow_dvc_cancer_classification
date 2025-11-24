@@ -145,7 +145,7 @@ class ConfigurationManager:
             path_of_model=Path(evaluation_config.path_of_model),
             training_data=Path(evaluation_data),
             all_params=self.params,
-            #mlflow_uri=self.config.mlflow_uri,
+            mlflow_uri="https://dagshub.com/GaneshkrishnaL/mlflow_dvc_cancer_classification.mlflow",
             params_image_size=self.params.IMAGE_SIZE,
             params_batch_size=self.params.BATCH_SIZE,
         )

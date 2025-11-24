@@ -31,11 +31,11 @@ WEIGHTS: imagenet
 CLASSES: 2
 
 # EPOCHS: How many times the model sees the entire dataset during training.
-EPOCHS: 1
+EPOCHS: 2
 
 # BATCH_SIZE: How many images to process at once before updating the model.
 # - 16: Good balance for average GPUs.
-BATCH_SIZE: 16 
+BATCH_SIZE: 32 
 
 # AUGMENTATION: Whether to artificially create more training data.
 # - True: Rotates, flips, and zooms images to make the model more robust.

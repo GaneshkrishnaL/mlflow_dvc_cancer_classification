@@ -2,7 +2,7 @@ tensorflow
 pandas 
 gdown
 dvc
-mlflow
+mlflow<3
 notebook
 numpy
 matplotlib
@@ -16,6 +16,5 @@ types-PyYAML
 scipy
 Flask
 Flask-Cors
-dagshub<3
-dagshub<3
+dagshub
 -e .

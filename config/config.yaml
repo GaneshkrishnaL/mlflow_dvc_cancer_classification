@@ -20,6 +20,6 @@ training:
 evaluation:
   path_of_model: artifacts/training/model.h5
   training_data: artifacts/data_ingestion
-  #mlflow_uri: https://dagshub.com/entbappy/chest-Disease-Classification-MLflow-DVC.mlflow
+  mlflow_uri: https://dagshub.com/GaneshkrishnaL/mlflow_dvc_cancer_classification.mlflow         
 
   
