@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chest Cancer AI Classifier</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <style>
+        :root {
+            --primary-color: #4361ee;
+            --secondary-color: #3f37c9;
+            --accent-color: #4895ef;
+            --bg-color: #f8f9fa;
+            --card-bg: #ffffff;
+            --text-color: #2b2d42;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+            color: var(--primary-color) !important;
+            font-size: 1.5rem;
+        }
+
+        .main-container {
+            padding-top: 100px;
+            padding-bottom: 50px;
+        }
+
+        .upload-card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            padding: 2rem;
+            transition: transform 0.3s ease;
+            height: 100%;
+        }
+
+        .upload-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .image-preview-container {
+            width: 100%;
+            height: 350px;
+            border: 2px dashed #dee2e6;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+            background-color: #f8f9fa;
+            margin-bottom: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .image-preview-container.drag-active {
+            border-color: var(--primary-color);
+            background-color: rgba(67, 97, 238, 0.05);
+        }
+
+        #photo {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            display: none;
+            border-radius: 10px;
+        }
+
+        #video-placeholder {
+            text-align: center;
+            color: #adb5bd;
+        }
+
+        .btn-custom {
+            padding: 12px 30px;
+            border-radius: 50px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-bottom: 1rem;
+        }
+
+        .btn-upload {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+        }
+
+        .btn-upload:hover {
+            background-color: var(--secondary-color);
+            transform: scale(1.02);
+            box-shadow: 0 5px 15px rgba(67, 97, 238, 0.3);
+        }
+
+        .btn-predict {
+            background-color: #2ec4b6;
+            color: white;
+            border: none;
+        }
+
+        .btn-predict:hover {
+            background-color: #20a499;
+            transform: scale(1.02);
+            box-shadow: 0 5px 15px rgba(46, 196, 182, 0.3);
+        }
+
+        .result-card {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border-radius: 20px;
+            padding: 2rem;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(67, 97, 238, 0.2);
+        }
+
+        .result-title {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .result-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .loader-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            display: none;
+        }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .footer {
+            text-align: center;
+            padding: 2rem 0;
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg fixed-top">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-lungs-virus me-2"></i>Chest Cancer AI
+            </a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container main-container">
+        <div class="row g-4">
+            <!-- Upload Section -->
+            <div class="col-md-7">
+                <div class="upload-card">
+                    <h3 class="mb-4 fw-bold">Upload CT Scan</h3>
+                    <div class="image-preview-container" id="drop-zone">
+                        <div id="video-placeholder">
+                            <i class="fas fa-cloud-upload-alt fa-3x mb-3"></i>
+                            <p class="mb-0">Drag & Drop or Click to Upload</p>
+                            <small class="text-muted">Supports JPG, PNG</small>
+                        </div>
+                        <img id="photo" src="" alt="Preview">
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <button class="btn btn-custom btn-upload" id="upload-btn">
+                                <i class="fas fa-file-upload me-2"></i>Select Image
+                            </button>
+                            <input type="file" id="fileinput" accept="image/*" style="display: none;">
+                        </div>
+                        <div class="col-md-6">
+                            <button class="btn btn-custom btn-predict" id="predict-btn">
+                                <i class="fas fa-magic me-2"></i>Predict
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Result Section -->
+            <div class="col-md-5">
+                <div class="result-card">
+                    <div id="result-content" style="display: none;">
+                        <div class="result-title">Prediction Result</div>
+                        <div class="result-value" id="prediction-text">Normal</div>
+                        <div class="mt-3">
+                            <i class="fas fa-check-circle fa-3x"></i>
+                        </div>
+                    </div>
+                    <div id="initial-state">
+                        <i class="fas fa-robot fa-4x mb-3" style="opacity: 0.5;"></i>
+                        <h4>AI Ready</h4>
+                        <p class="mb-0 opacity-75">Upload an image and click Analyze to see the diagnosis.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>Powered by Deep Learning & MLOps • VGG16 Architecture</p>
+    </div>
+
+    <!-- Loader -->
+    <div class="loader-overlay" id="loading">
+        <div class="text-center">
+            <div class="spinner mb-3"></div>
+            <h5 class="fw-bold text-primary">Analyzing Scan...</h5>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        var base_data = "";
+
+        $(document).ready(function () {
+            // Upload Button Click
+            $('#upload-btn').click(function () {
+                $('#fileinput').click();
+            });
+
+            // File Input Change
+            $('#fileinput').change(function () {
+                if (this.files && this.files[0]) {
+                    var reader = new FileReader();
+                    reader.onload = function (e) {
+                        var url = e.target.result;
+
+                        // Display Image
+                        $('#photo').attr('src', url).show();
+                        $('#video-placeholder').hide();
+
+                        // Prepare Base64
+                        var img = new Image();
+                        img.onload = function () {
+                            var canvas = document.createElement('CANVAS');
+                            var ctx = canvas.getContext('2d');
+                            canvas.height = this.height;
+                            canvas.width = this.width;
+                            ctx.drawImage(this, 0, 0);
+                            base_data = canvas.toDataURL('image/jpeg', 1.0).replace(/^data:image.+;base64,/, '');
+                        };
+                        img.src = url;
+                    }
+                    reader.readAsDataURL(this.files[0]);
+                }
+            });
+
+            // Predict Button Click
+            $('#predict-btn').click(function () {
+                if (base_data == "") {
+                    alert("Please upload an image first!");
+                    return;
+                }
+
+                $('#loading').css('display', 'flex');
+
+                $.ajax({
+                    url: "../predict",
+                    type: "post",
+                    cache: false,
+                    async: true,
+                    crossDomain: true,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*'
+                    },
+                    data: JSON.stringify({ image: base_data }),
+                    success: function (res) {
+                        $('#loading').hide();
+                        $('#initial-state').hide();
+                        $('#result-content').fadeIn();
+
+                        var prediction = res[0].image;
+                        $('#prediction-text').text(prediction);
+
+                        // Update UI based on result
+                        if (prediction.includes("Cancer")) {
+                            $('.result-card').css('background', 'linear-gradient(135deg, #ef476f, #d90429)');
+                            $('.result-card i').removeClass('fa-check-circle').addClass('fa-exclamation-triangle');
+                        } else {
+                            $('.result-card').css('background', 'linear-gradient(135deg, #06d6a0, #118ab2)');
+                            $('.result-card i').removeClass('fa-exclamation-triangle').addClass('fa-check-circle');
+                        }
+                    },
+                    error: function (err) {
+                        $('#loading').hide();
+                        alert("Error occurred during prediction!");
+                        console.error(err);
+                    }
+                });
+            });
+
+            // Drag and Drop Effects
+            var dropZone = $('#drop-zone');
+
+            dropZone.on('dragover', function (e) {
+                e.preventDefault();
+                $(this).addClass('drag-active');
+            });
+
+            dropZone.on('dragleave', function (e) {
+                e.preventDefault();
+                $(this).removeClass('drag-active');
+            });
+
+            dropZone.on('drop', function (e) {
+                e.preventDefault();
+                $(this).removeClass('drag-active');
+                var files = e.originalEvent.dataTransfer.files;
+                $('#fileinput').prop('files', files).trigger('change');
+            });
+        });
+    </script>
+</body>
+
+</html>
