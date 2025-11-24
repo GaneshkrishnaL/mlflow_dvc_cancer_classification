@@ -672,142 +672,192 @@ If you’re reading this “in the future”:
 * Start by scanning `config.yaml`, `params.yaml`, and `dvc.yaml`.
 * Then open `src/cnnClassifier/components/` to recall exactly how each stage works.
 * Finally, check DagsHub Experiments to remember how the last runs performed.
+_TRACKING_URI=https://dagshub.com/<username>/<repo>.mlflow
+export MLFLOW_TRACKING_USERNAME=<username>
+export MLFLOW_TRACKING_PASSWORD=<personal-access-token>
+```
 
-## Workflows
+**Windows (PowerShell):**
 
-1. Update config.yaml
-2. Update secrets.yaml [Optional]
-3. Update params.yaml
-4. Update the entity
-5. Update the configuration manager in src config
-6. Update the components
-7. Update the pipeline 
-8. Update the main.py
-9. Update the dvc.yaml
+```powershell
+$env:MLFLOW_TRACKING_URI="https://dagshub.com/<username>/<repo>.mlflow"
+$env:MLFLOW_TRACKING_USERNAME="<username>"
+$env:MLFLOW_TRACKING_PASSWORD="<personal-access-token>"
+```
 
+Test:
 
+```python
+import mlflow
+print(mlflow.get_tracking_uri())
+```
 
+---
 
+## 7. Docker Usage
 
-## MLflow
-
-- [Documentation](https://mlflow.org/docs/latest/index.html)
-
-- [MLflow tutorial](https://youtube.com/playlist?list=PLkz_y24mlSJZrqiZ4_cLUiP0CBN5wFmTb&si=zEp_C8zLHt1DzWKK)
-
-##### cmd
-- mlflow ui
-
-### dagshub
-[dagshub](https://dagshub.com/)
-
-MLFLOW_TRACKING_URI=https://dagshub.com/
-python script.py
-
-Run this to export as env variables:
+### 7.1 Build the Image
 
 ```bash
+docker build -t chest-cancer-classifier .
+```
 
-export MLFLOW_TRACKING_URI=https://dagshub.com/
+### 7.2 Run the Container (Local)
 
+```bash
+docker run -p 8080:8080 chest-cancer-classifier
+```
 
+Then visit:
 
-### DVC cmd
+```text
+http://localhost:8080
+```
 
-1. dvc init
-2. dvc repro
-3. dvc dag
+---
 
+## 8. CI/CD with GitHub Actions & AWS
 
-## About MLflow & DVC
+### 8.1 AWS Resources Needed
 
-MLflow
+1. **ECR Repository**
 
- - Its Production Grade
- - Trace all of your expriements
- - Logging & taging your model
+   * Stores the Docker images
+   * Example: `123456789012.dkr.ecr.us-east-1.amazonaws.com/chest-cancer-classifier`
 
+2. **EC2 Instance**
 
-DVC 
+   * Ubuntu machine
+   * Docker installed
+   * Configured as a **self-hosted runner** in GitHub
 
- - Its very lite weight for POC only
- - lite weight expriements tracker
- - It can perform Orchestration (Creating Pipelines)
+3. **IAM User/Role** with policies:
 
+   * `AmazonEC2ContainerRegistryFullAccess`
+   * `AmazonEC2FullAccess` (or a tighter permission set, but this is the usual starting point)
 
+---
 
-# AWS-CICD-Deployment-with-Github-Actions
+### 8.2 GitHub Secrets Required
 
-## 1. Login to AWS console.
+In your GitHub repo settings → **Settings → Secrets and variables → Actions**:
 
-## 2. Create IAM user for deployment
+Set:
 
-	#with specific access
+* `AWS_ACCESS_KEY_ID`
+* `AWS_SECRET_ACCESS_KEY`
+* `AWS_REGION` (e.g., `us-east-1`)
+* `ECR_REPOSITORY_NAME` (e.g., `chest-cancer-classifier`)
+* (Optional/Legacy) `AWS_ECR_LOGIN_URI` – but you can rely on `steps.login-ecr.outputs.registry` instead
 
-	1. EC2 access : It is virtual machine
+---
 
-	2. ECR: Elastic Container registry to save your docker image in aws
+### 8.3 Workflow Summary (`.github/workflows/main.yaml`)
 
+* **Job 1 – integration**
 
-	#Description: About the deployment
+  * Simple CI: checkout, (optional) lint/test
 
-	1. Build docker image of the source code
+* **Job 2 – build-and-push-ecr-image**
 
-	2. Push your docker image to ECR
+  * Checkout code
+  * Configure AWS credentials
+  * Login to ECR
+  * Build image: `docker build -t <registry>/<repo>:latest .`
+  * Push image: `docker push <registry>/<repo>:latest`
 
-	3. Launch Your EC2 
+* **Job 3 – Continuous-Deployment (self-hosted)**
 
-	4. Pull Your image from ECR in EC2
+  * Runs on EC2 runner
+  * `docker pull` latest image from ECR
+  * Stop old `cnncls` container if present
+  * Run new container: `docker run -d -p 8080:8080 --name=cnncls ...`
+  * Clean up with `docker system prune -f`
 
-	5. Lauch your docker image in EC2
+Once this is set up, any **push to `main`** will:
 
-	#Policy:
+* Build a new image
+* Push it to ECR
+* Deploy it to the EC2 instance
 
-	1. AmazonEC2ContainerRegistryFullAccess
+---
 
-	2. AmazonEC2FullAccess
+## 9. Common Issues & Troubleshooting
 
-	
-## 3. Create ECR repo to store/save docker image
-    - Save the URI: 566373416292.dkr.ecr.us-east-1.amazonaws.com/chicken
+### MLflow / DagsHub issues
 
-	
-## 4. Create EC2 machine (Ubuntu) 
+* **`unsupported endpoint, please contact support@dagshub.com`**
+  Cause:
 
-## 5. Open EC2 and Install docker in EC2 Machine:
-	
-	
-	#optinal
+  * Newer MLflow clients use “logged models” endpoints that DagsHub may not support yet.
+    Fix:
+  * Instead of `mlflow.keras.log_model(self.model, "model", ...)`, manually:
 
-	sudo apt-get update -y
+    ```python
+    self.model.save("model.keras")
+    mlflow.log_artifact("model.keras", artifact_path="model")
+    ```
 
-	sudo apt-get upgrade
-	
-	#required
+### Windows Environment Variables
 
-	curl -fsSL https://get.docker.com -o get-docker.sh
+* **Error: `export : The term 'export' is not recognized`**
+  Fix:
 
-	sudo sh get-docker.sh
+  * Use PowerShell syntax:
 
-	sudo usermod -aG docker ubuntu
+    ```powershell
+    $env:MLFLOW_TRACKING_URI="https://dagshub.com/..."
+    ```
 
-	newgrp docker
-	
-# 6. Configure EC2 as self-hosted runner:
-    setting>actions>runner>new self hosted runner> choose os> then run command one by one
+### Git Push Fails (remote has newer commits)
 
+* Error: `! [rejected] main -> main (fetch first)`
+  Fix:
 
-# 7. Setup github secrets:
+  ```bash
+  git pull origin main --rebase
+  git push origin main
+  ```
 
-    AWS_ACCESS_KEY_ID=
+### Docker Image Not Found During CD
 
-    AWS_SECRET_ACCESS_KEY=
+* Error in Actions: `failed to resolve reference ...: not found`
+  Causes:
 
-    AWS_REGION = us-east-1
+  * `docker run` uses an image name that does not match the one you built/pushed.
+    Fix:
+  * Ensure build, push, pull, and run all use **exact same** name:
 
-    AWS_ECR_LOGIN_URI = demo>>  566373416292.dkr.ecr.ap-south-1.amazonaws.com
+    ```bash
+    $ECR_REGISTRY/$ECR_REPOSITORY:latest
+    ```
 
-    ECR_REPOSITORY_NAME = simple-app
+---
+
+## 10. How to Extend This Project Later
+
+If you open this repo in 1 year and want to extend it, possible directions:
+
+* Swap **VGG16** with **ResNet50 / EfficientNet** (change base model component & params).
+* Add more classes (multi-class chest disease detection) → update `CLASSES` in `params.yaml` and classification head.
+* Add **hyperparameter search** (GridSearch/Optuna) and log results to MLflow.
+* Add **more robust evaluation** (precision, recall, F1, confusion matrix).
+* Add **authentication** or nicer UI in Flask.
+* Extend **CI** job to actually run `pytest` or smoke tests instead of echo placeholders.
+
+---
+
+## 11. Author
+
+**Ganesh Krishna**
+Chest Cancer Classification Project
+Tech Stack: **Python, TensorFlow/Keras, MLflow, DVC, Docker, Flask, AWS, DagsHub**
+
+If you’re reading this “in the future”:
+
+* Start by scanning `config.yaml`, `params.yaml`, and `dvc.yaml`.
+* Then open `src/cnnClassifier/components/` to recall exactly how each stage works.
+* Finally, check DagsHub Experiments to remember how the last runs performed.
 
 
 
