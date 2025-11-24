@@ -40,7 +40,7 @@ class PredictionPipeline:
         # Load the trained model
         # Ideally, this path should be dynamic or from config, but for simplicity:
         # We check if a local 'model' folder exists (for deployment) or use artifacts
-        model = load_model(os.path.join("artifacts", "training", "model.h5"))
+        model = load_model(os.path.join("model", "model.h5"))
 
         imagename = self.filename
         

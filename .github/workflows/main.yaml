@@ -1,0 +1,124 @@
+name: workflow
+
+# -----------------------------------------------------------------------------
+# WHY THIS FILE EXISTS:
+# This is the "CI/CD Pipeline" (Continuous Integration / Continuous Deployment).
+# 
+# It automates the process of:
+# 1. Testing the code whenever you push to GitHub (CI).
+# 2. Building a Docker Image of your app.
+# 3. Pushing that image to AWS ECR (Elastic Container Registry).
+# 4. Pulling that image to your AWS EC2 server and running it (CD).
+# -----------------------------------------------------------------------------
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - 'README.md' # Don't run this pipeline if only README is changed
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  # -----------------------------------------------------------------------------
+  # JOB 1: INTEGRATION (CI)
+  # Goal: Check if the code is healthy.
+  # -----------------------------------------------------------------------------
+  integration:
+    name: Continuous Integration
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Lint code
+        run: echo "Linting repository" # Placeholder: You'd usually run 'flake8' here
+
+      - name: Run unit tests
+        run: echo "Running unit tests" # Placeholder: You'd usually run 'pytest' here
+
+  # -----------------------------------------------------------------------------
+  # JOB 2: DELIVERY (Build & Push)
+  # Goal: Package the app into a Docker Image and save it to AWS ECR.
+  # -----------------------------------------------------------------------------
+  build-and-push-ecr-image:
+    name: Continuous Delivery
+    needs: integration # Only run if 'integration' job passes
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Install Utilities
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq unzip
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build, tag, and push image to Amazon ECR
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY_NAME }}
+          IMAGE_TAG: latest
+        run: |
+          # Build a docker container and
+          # push it to ECR so that it can
+          # be deployed to ECS.
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          
+          
+  # -----------------------------------------------------------------------------
+  # JOB 3: DEPLOYMENT (CD)
+  # Goal: Log into the AWS EC2 server (Self-Hosted Runner), pull the new image, 
+  # and restart the app.
+  # -----------------------------------------------------------------------------
+  Continuous-Deployment:
+    needs: build-and-push-ecr-image
+    runs-on: self-hosted # IMPORTANT: This runs on YOUR AWS EC2 instance, not GitHub's servers
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+      
+      
+      - name: Pull latest images
+        run: |
+         docker pull ${{secrets.AWS_ECR_LOGIN_URI}}/${{ secrets.ECR_REPOSITORY_NAME }}:latest
+         
+      # - name: Stop and remove container if running
+      #   run: |
+      #    docker ps -q --filter "name=cnncls" | grep -q . && docker stop cnncls && docker rm -fv cnncls
+       
+      - name: Run Docker Image to serve users
+        run: |
+         docker run -d -p 8080:8080 --name=cnncls -e 'AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}' -e 'AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}' -e 'AWS_REGION=${{ secrets.AWS_REGION }}'  ${{secrets.AWS_ECR_LOGIN_URI}}/${{ secrets.ECR_REPOSITORY_NAME }}:latest
+      
+      - name: Clean previous images and containers
+        run: |
+         docker system prune -f
